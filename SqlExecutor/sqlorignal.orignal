@@ -1,0 +1,142 @@
+set serveroutput on;
+set echo off;
+set pagesize 1000;
+set linesize 1000;
+SET FEEDBACK OFF;
+SET VERIFY OFF;
+SET TRIMSPOOL ON;
+set heading OFF;
+
+
+define stdt = 'START-DATE'
+define eddt = 'END-DATE'
+define pd = 4
+
+
+select '                    ** Report for the dates between &stdt and &eddt  **                      ' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select '  ----------------  Total Amount Billed for the given period with currency code            ------------' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select ' ' from dual;
+COLUMN CURRENCY_CD FORMAT A11
+SET NUMWIDTH 20
+
+SELECT /*+ parallel (&pd) */ F.CURRENCY_CD CURRENCY_CD , ' > ', to_char(SUM(F.CUR_AMT) , '999,999,999,999,999,999.00') TOT_BILL_AMT
+  FROM CI_FT F , CI_BILL B
+  WHERE F.BILL_ID = B.BILL_ID
+AND F.FT_TYPE_FLG in ('BS', 'BX', 'AD', 'AX')
+AND F.show_on_bill_sw='Y'
+AND F.freeze_sw = 'Y'
+AND B.BILL_STAT_FLG = 'C'
+AND B.BILL_DT BETWEEN to_date('&stdt', 'DD-MON-YYYY') AND to_date('&eddt', 'DD-MON-YYYY')
+group by F.CURRENCY_CD;
+
+
+select ' ' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select '  ----------------  Number of Priceitems configured in System                              ------------' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select ' ' from dual;
+COLUMN PRICEITEM_CD FORMAT A30
+SELECT /*+ parallel (&pd) */ PRICEITEM_CD, '-', to_char(count(1), '999,999,999,999,999,999')  FROM CI_PRICEITEM PI group by PRICEITEM_CD;
+
+
+
+select ' ' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select '  ----------------  Number of priceitems billed                                            ------------' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select ' ' from dual;
+SELECT  /*+ parallel (&pd) */ 'Total Priceitems billed between &stdt and &eddt > ', count(distinct ext.priceitem_cd)
+          FROM CI_BILL B, CI_BSEG BSEG, CI_BSEG_EXT EXT
+         WHERE B.BILL_ID = BSEG.BILL_ID
+           AND B.BILL_STAT_FLG = 'C'
+           AND BSEG.BSEG_STAT_FLG = 50
+           AND BSEG.bseg_id = ext.bseg_id
+           AND B.BILL_DT BETWEEN to_date('&stdt', 'DD-MON-YYYY') AND to_date('&eddt', 'DD-MON-YYYY');
+
+
+select ' ' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select '  ----------------  Number of Bills                                                        ------------' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select ' ' from dual;
+SELECT  /*+ parallel (&pd) */ 'Total Bills between &stdt and &eddt > ', to_char(count(1), '999,999,999,999,999,999.00')
+  FROM CI_BILL B
+ WHERE B.BILL_STAT_FLG = 'C'
+   AND B.BILL_DT BETWEEN to_date('&stdt', 'DD-MON-YYYY') AND to_date('&eddt', 'DD-MON-YYYY');
+
+
+select ' ' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select '  ----------------  Number of Bill Segments                                                ------------' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select ' ' from dual;
+SELECT  /*+ parallel (&pd) */ 'Total Bill Segments between &stdt and &eddt > ', to_char(count(1), '999,999,999,999,999,999.00')
+  FROM CI_BILL B, CI_BSEG BSEG
+ WHERE B.BILL_ID = BSEG.BILL_ID
+   AND B.BILL_STAT_FLG = 'C'
+   AND BSEG.BSEG_STAT_FLG = 50
+   AND B.BILL_DT BETWEEN to_date('&stdt', 'DD-MON-YYYY') AND to_date('&eddt', 'DD-MON-YYYY');
+
+
+select ' ' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select '  ----------------  Number of Raw Transaction processed                                    ------------' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select ' ' from dual;
+SELECT /*+ parallel (&pd) */ 'Total raw transactions processed between &stdt and &eddt > ', to_char(COUNT(1), '999,999,999,999,999,999')  FROM ci_txn_detail t
+ WHERE t.curr_sys_prcs_dt between to_date('&stdt', 'DD-MON-YYYY') AND to_date('&eddt', 'DD-MON-YYYY');
+
+/*
+select ' ' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select '  ----------------  Number of Raw Transaction processed based on txn_dttm                  ------------' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select ' ' from dual;
+--SELECT /*+ parallel (&pd) */ --COUNT(1)
+--  FROM ci_txn_detail t
+-- WHERE t.txn_dttm between to_date('&stdt', 'DD-MON-YYYY') AND to_date('&eddt', 'DD-MON-YYYY');
+
+
+select ' ' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select '  ----------------  Number of derived Transaction processed                                ------------' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select ' ' from dual;
+SELECT /*+ parallel (&pd) */ 'Total derived transactions processed between &stdt and &eddt > ', to_char(COUNT(1), '999,999,999,999,999,999')
+  FROM CI_TXN_DTL_PRITM t
+ WHERE t.curr_sys_prcs_dt between to_date('&stdt', 'DD-MON-YYYY') AND to_date('&eddt', 'DD-MON-YYYY');
+
+
+select ' ' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select '  ----------------  Number of Customers in ORMB                                            ------------' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select ' ' from dual;
+
+select  /*+ parallel (&pd) */ 'Total Customers in ORMB > ',to_char(count(1), '999,999,999,999') from ci_per p ;
+
+
+
+select ' ' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select '  ----------------  Number of active online users accessing ORMB application               ------------' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select ' ' from dual;
+
+select  /*+ parallel (&pd) */ 'Number of active online users accessing ORMB application > ',to_char(count(1), '999,999,999,999') from sc_user usr where usr.USER_ENABLE_FLG = 'ENBL';
+
+
+select ' ' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select '  Accounts having contracts in Pending Start, Active, Pending Stop and Reactivated.        ------------' from dual;
+select '  -----------------------------------------------------------------------------------------------------' from dual;
+select ' ' from dual;
+--Accounts having contracts in Pending Start, Active, Pending Stop and Reactivated. Exlcuded Canceled, Closed, Stopped)
+select  /*+ parallel (&pd) */ 'Number of active online users accessing ORMB application > ',to_char(count(1), '999,999,999,999') from ci_acct acct where exists (
+select '1' from ci_sa sa where sa.acct_id = acct.acct_id and sa.sa_status_flg in (10,20,30,50));
+
+select ' ' from dual;
+select '  ** End of report     **' from dual;
+
