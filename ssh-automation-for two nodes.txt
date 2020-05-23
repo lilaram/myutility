@@ -1,0 +1,37 @@
+ssh automation on two nodes
+
+1-> first Node
+
+mkdir -p /u02/app_files/public_key
+
+    [[ -d ~/.ssh ]] && rm -rf ~/.ssh
+
+    ssh-keygen -q -t rsa -N "" -f ~/.ssh/id_rsa
+    eval $(ssh-agent -s)
+    ssh-add ~/.ssh/id_rsa
+    #to disable prompt for the first time
+    result=$(cat /etc/ssh/ssh_config | grep -c "StrictHostKeyChecking no")
+    if [ $result -eq 0 ]; then
+       echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
+    fi
+    ## Copy this file to shared dir
+    [ -f /u02/app_files/public_key/ormbNodeA_key.pub ] && rm  /u02/app_files/public_key/ormbNodeA_key.pub
+    cp ~/.ssh/id_rsa.pub   /u02/app_files/public_key/ormbNodeA_key.pub
+
+
+2-> alt Node
+
+ssh-keygen -q -t rsa -N "" -f ~/.ssh/id_rsa
+    eval $(ssh-agent -s)
+    ssh-add ~/.ssh/id_rsa
+    #to disable prompt for the first time
+    result=$(cat /etc/ssh/ssh_config | grep -c "StrictHostKeyChecking no")
+    if [ $result -eq 0 ]; then
+       echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
+    fi
+    ## copy pub key into authorized_keys
+    rm -rf ~/.ssh/authorized_keys
+    touch ~/.ssh/authorized_keys
+    cat  /u02/app_files/public_key/ormbNodeA_key.pub >> ~/.ssh/authorized_keys
+    chmod 640 ~/.ssh/authorized_keys
+
