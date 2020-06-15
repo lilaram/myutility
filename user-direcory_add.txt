@@ -1,0 +1,41 @@
+
+Agent Removal-->
+/u01/app/oracle/agent/agent_13.2.0.0.0/perl/bin/perl /u01/app/oracle/agent/agent_13.2.0.0.0/sysman/install/AgentDeinstall.pl  -agentHome /u01/app/oracle/agent/agent_13.2.0.0.0
+
+mkdir -p /scratch/oem_install12
+useradd oem_ -d /scratch/oem_install1
+chown oem_install:<dba> /scratch/oem_install1
+
+// very imp imp imp
+mkdir /scratch/oem_install
+chown -R oem_install:oem_install /scratch/oem_install
+usermod -d /scratch/oem_install oem_install
+su - oem_install
+
+export ORACLE_HOME=/scratch/u01/app/oem_install/product/12.1.0/dbhome_1
+export PATH=$ORACLE_HOME/bin:$PATH
+
+mkdir /scratch/oem_agent
+chown -R oem_agent:oem_agent /scratch/oem_agent
+usermod -d /scratch/oem_agent oem_agent
+
+SELECT DB_LINK, USERNAME, HOST FROM ALL_DB_LINKS
+
+/////////////////////////////////////////////////
+
+mkdir /u01/fsgbu_ormb
+groupadd -g 59969 fsgbu_apps
+useradd -u 54324 -g 59969 fsgbu_ormb
+usermod -d /u01/fsgbu_ormb fsgbu_ormb
+
+//////////////////////////////////////////////
+./bi_rdc_client-5.4-linux64.bin -silent -responseFile #{node[:location][:extract]}/oac_datagateway/oci_data_gateway.rsp -invPtrLoc #{node[:base]}/oraInventory/oraInst.loc
+./bi_rdc_client-5.4-linux64.bin -silent -responseFile /u01/extract/oac_datagateway/oci_data_gateway.rsp -invPtrLoc /u01/oraInventory/oraInst.loc
+cd /root/chef-repo ; chef-solo -c /root/chef-repo/solo.rb -o recipe["oci_ormb_ocadatagateway::oca_datagateway"]
+cd /root/chef-repo ; chef-solo -c /root/chef-repo/solo.rb -o recipe["oci_ormb_ocadatagateway::testrestcall"]
+node[:location][:app] %>/oca_datagateway
+
+post(ul+end_query,
+http.header()
+http.body
+
